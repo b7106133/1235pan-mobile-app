@@ -76,9 +76,8 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 - 上传队列管理：支持取消
 
 ### 🔐 多账号认证
+暂不开放
 - 账号密码/短信验证码/二维码扫码/官方 SSO 登录
-- 多账号凭证持久化，切换免重新登录
-- 多账号滑动快速切换
 
 ### 🖼️ 预览
 - 图片/视频/音频预览（几十种格式）
@@ -189,7 +188,6 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 | 多级直链解析 `resolveRealDownloadUrl` | ❌ 无 | ✅ 递归解析 CDN 中转跳转 |
 | 下载日志 `logDl/dlTrace` | ❌ 无 | ✅ 调试追踪 |
 | 下载校验 `expectedSize` 字节完整性 | ❌ 无 | ✅ 写盘字节 < 期望时标记失败 |
-| GitHub 更新包专用下载器 | ❌ 无 | ✅ 直连+镜像回退+严格校验 |
 | 下载完成 MediaStore 注册 | ❌ 无 | ✅ 文件管理器直接看到 |
 | 流式下载 vs DownloadManager | DownloadManager 备选 | ✅ 双通道并存 |
 
@@ -204,12 +202,10 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 | 上传进度回调节流 | ❌ 无 | ✅ lastProgAt 控制频率 |
 
 ### 🔐 多账号
+暂不开放
 
 | 功能 | 原版 | 本项目 |
 |------|:----:|:------:|
-| 多账号持久化 / 切换 | ❌ 单账号 | ✅ SharedPreferences 多 Token |
-| 滑动快速切换账号 | ❌ 无 | ✅ JS 侧实现 |
-| 官方 SSO 自动捕获 token | ❌ 无 | ✅ tryCaptureSsoTokenFromMain |
 
 ### 📱 设备信息
 
