@@ -67,33 +67,6 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 
 ---
 
-## 原生层实现（Java）
-### ⬇️ 自研流式下载引擎
-- MainActivity.DlTask 自研下载任务表（ConcurrentHashMap），支持暂停/继续/重试/断点续传
-- 通过 HttpURLConnection 原生 HTTP，突破 WebView 限制
-- 下载完成自动注册到 MediaStore，系统相册/文件管理器可直接打开
-- DownloadManager 备选通道
-
-### ⬆️ 自研分片上传引擎
-- UploadManager 单例管理队列，多任务并发（线程池限 2）
-- 大文件分片上传：≥5MB 分片，失败 ≤64MB 自动回退整包直传
-- 支持 content:// URI 读取（文件选择器只读 URI）
-- 上传任务支持取消
-
-### 🔌 NativeBridge JS 桥
-- @JavascriptInterface 暴露原生能力给 SPA
-- 原生 HttpURLConnection → 回传 JS 回调
-- 预览 URL 代理（认证头 + Range）
-
-### 🧵 并发架构
-- 文件去重线程池：12 线程并发
-- 上传线程池：2 线程限流
-- 下载任务独立线程
-
-### 📁 SAF目录选择器
-- Intent.ACTION_OPEN_DOCUMENT_TREE 自定义下载目录
-- 支持任意存储位置（Downloads / Movies / DCIM 等）
-- 路径保存到 SharedPreferences
 ## 与原版对比：本项目的增量实现
 
 基于 [qq5855144/123pan-mobile-app v1.0.120](https://github.com/qq5855144/123pan-mobile-app) 分析，以下是本项目新增或彻底重写的功能：
@@ -145,7 +118,6 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 | 页面/模块 | 说明 |
 |-----------|------|
 | 消息中心 | 站内通知管理，全部已读/刷新 |
-| 会员中心 | 签到领容量、开通/续费 |
 | 设备管理 | 查看在线设备列表 |
 | 登录记录 | 历史登录记录 |
 | 回收站 | 恢复/彻底删除/清空 |
