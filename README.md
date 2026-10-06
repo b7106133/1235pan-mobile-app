@@ -123,6 +123,14 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 - 通过 `HttpURLConnection` 原生 HTTP 请求下载，突破 WebView 限制
 - 下载完成后自动注册到 `MediaStore`（`ContentResolver`），可在系统相册/文件管理器直接打开
 - 任务 ID 区间 `900000000+`，与上传任务区分
+
+### 💾 下载持久化（App 被杀后恢复断点续传）
+- 每次下载任务状态变更时调用 **`dlPersist()`**：将「下载中/已暂停」的任务序列化为 JSON 数组，写入 `SharedPreferences`
+- 每个任务存储：`id`、`url`、`filename`、`expected`（期望大小）、`done`（已写字节）、`total`（总大小）、`uri`（MediaStore URI，断点续传复用）
+- App 启动时调用 **`dlRestore()`**：从 SharedPreferences 读取 JSON，恢复 `DlTask` 对象，状态设为 **已暂停（status=2）**
+- 用户点击「继续」即从 `Range: bytes=<done>-` 断点续传，失败自动回退从头重下
+- 恢复后自动抬高 `nextTaskId` 游标，防止新任务 ID 冲突
+- 无数据库依赖，仅 JSON + `SharedPreferences`，轻量可靠
 - `DownloadManager` 备选下载通道
 
 ### ⬆️ 自研分片上传引擎
@@ -154,3 +162,84 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 - 自定义下载目录：通过 `Intent.ACTION_OPEN_DOCUMENT_TREE` 让用户任意选择目录
 - 支持 Download 根、Download 子目录、甚至非 Download 目录（如 Movies/DCIM）
 - 路径解析精确保留用户选择，存储到 `SharedPreferences`
+
+---
+
+## 与原版对比：本项目的增量实现
+
+基于 [qq5855144/123pan-mobile-app v1.0.120](https://github.com/qq5855144/123pan-mobile-app) 分析，以下是本项目新增或彻底重写的功能：
+
+### 🆕 全新 Java 模块（原版没有的类）
+
+| 新增文件 | 功能 |
+|---------|------|
+| `CrossPan.java` + `crosspan.js` | 夸克/UC 跨盘模块：Cookie管理、CDN独立下载线程 |
+| `DownloadService.java` | Android 前台保活 Service，后台下载不被系统杀死 |
+| `UploadManager.java` | 独立上传管理器：队列管理、`UpSrc` 抽象（本地文件 / content:// URI 共用管线） |
+| `UploadActivity.java` | 上传 Activity，原生端多文件/目录选择 |
+| `appicons.js` | 全套 SVG 彩色文件图标素材（几十种文件类型） |
+
+### ⬇️ 下载引擎强化（原版有基础版，我做的增量）
+
+| 功能 | 原版 | 本项目 |
+|------|:----:|:------:|
+| 下载持久化 `dlPersist/dlRestore` | ❌ 无 | ✅ JSON→SharedPreferences，App 重启后恢复断点续传 |
+| `Range` 断点续传 | ❌ 从头下 | ✅ `Range: bytes=<done>-`，失败自动回退 |
+| 前台保活 `DownloadService` | ❌ 无 | ✅ 后台保活，系统不会杀下载进程 |
+| 多级直链解析 `resolveRealDownloadUrl` | ❌ 无 | ✅ 递归解析 CDN 中转跳转 |
+| 下载日志 `logDl/dlTrace` | ❌ 无 | ✅ 调试追踪 |
+| 下载校验 `expectedSize` 字节完整性 | ❌ 无 | ✅ 写盘字节 < 期望时标记失败 |
+| GitHub 更新包专用下载器 | ❌ 无 | ✅ 直连+镜像回退+严格校验 |
+| 下载完成 MediaStore 注册 | ❌ 无 | ✅ 文件管理器直接看到 |
+| 流式下载 vs DownloadManager | DownloadManager 备选 | ✅ 双通道并存 |
+
+### ⬆️ 上传引擎强化
+
+| 功能 | 原版 | 本项目 |
+|------|:----:|:------:|
+| `UploadManager` 独立队列 | ❌ 内联在 MainActivity | ✅ 独立单例，生命周期管理 |
+| `UpSrc` 抽象（content:// URI 直传） | ❌ 先复制到缓存 | ✅ ParcelFileDescriptor 直接读，不落盘 |
+| 文件夹上传 SAF 递归遍历 | ❌ 无 | ✅ DocumentsContract API 递归扫描子目录 |
+| 上传任务可取消 | ❌ 无 | ✅ UpTask.cancelled |
+| 上传进度回调节流 | ❌ 无 | ✅ lastProgAt 控制频率 |
+
+### 🔐 多账号
+
+| 功能 | 原版 | 本项目 |
+|------|:----:|:------:|
+| 多账号持久化 / 切换 | ❌ 单账号 | ✅ SharedPreferences 多 Token |
+| 滑动快速切换账号 | ❌ 无 | ✅ JS 侧实现 |
+| 官方 SSO 自动捕获 token | ❌ 无 | ✅ tryCaptureSsoTokenFromMain |
+
+### 📱 设备信息
+
+| 功能 | 原版 | 本项目 |
+|------|:----:|:------:|
+| deviceType | ❌ 硬编码 `"X12"` | ✅ 系统读取 `Build.MODEL` |
+| osVersion | ❌ 硬编码 `"13"` | ✅ `Build.VERSION.RELEASE` |
+| devicename | ❌ 硬编码 `"Xiaomi"` | ✅ `sysProp("ro.product.marketname")` 读取真实市场名 |
+
+### 🖼️ 前端页面（原版没有的页面/模块）
+
+| 页面/模块 | 说明 |
+|-----------|------|
+| 消息中心 | 站内通知管理，全部已读/刷新 |
+| 会员中心 | 签到领容量、开通/续费 |
+| 设备管理 | 查看在线设备列表 |
+| 登录记录 | 历史登录记录 |
+| 回收站 | 恢复/彻底删除/清空 |
+| 接收分享 | 解析链接+提取码浏览并转存 |
+| 离线下载 | 磁力/直链提交到云端离线下载 |
+| 夸克下载说明 | 深链方式/Cookie方式使用指引 |
+| 全盘文件搜索 | 搜索栏实时搜索 |
+
+### 🌙 界面优化
+
+| 功能 | 原版 | 本项目 |
+|------|:----:|:------:|
+| 白夜模式状态栏/导航栏同步 | ❌ 无 | ✅ `onConfigurationChanged` + JS `applyTheme` |
+| 通知权限请求 (Android 13+) | ❌ 无 | ✅ 运行时权限 |
+| SVG 图标库 | ❌ 少量内联 SVG | ✅ `appicons.js` 全套彩色素材 |
+| app.js | 242KB | ✅ 521KB 大幅扩展 |
+| index.html | 30KB | ✅ 136KB 大量新页面/弹窗 |
+| style.css | 48KB | ✅ 96KB 完整主题 |
