@@ -1,7 +1,7 @@
 # 123pan-mobile-app
 
 > ⚠️ **顶部提示 / 重要说明**
-> 本项目为 123云盘第三方安卓客户端，基于 [qq5855144/123pan-mobile-app](https://github.com/qq5855144/123pan-mobile-app) 修改而来。
+> 本项目为 123云盘第三方安卓客户端，基于 [sillycats/123pan-mobile-app](https://github.com/sillycats/123pan-mobile-app) 进行二次开发。
 > 仅供学习研究使用，请勿用于任何违反法律法规的用途。
 
 ## 免责声明
@@ -11,11 +11,13 @@
 3. 使用者应自行承担使用本项目的所有风险和责任。
 4. 本项目开发者不对使用本软件造成的任何直接或间接损失承担责任。
 5. 请遵守当地法律法规，在下载后 24 小时内删除本软件及源代码。
-
 ## 参考项目
 
 - [qq5855144/123pan-mobile-app](https://github.com/qq5855144/123pan-mobile-app) — 原始项目
-- [sillycats/123pan-mobile-app](https://github.com/sillycats/123pan-mobile-app) — 参考实现
+
+- [sillycats/123pan-mobile-app](https://github.com/sillycats/123pan-mobile-app) — 基于原始项目的二次开发（本项目的直接上游）
+
+- **本项目的上游关系**：qq5855144/123pan-mobile-app → sillycats/123pan-mobile-app → 本项目
 
 ## 项目说明
 
