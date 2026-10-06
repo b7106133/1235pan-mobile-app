@@ -113,3 +113,44 @@ ANDROID_KEYSTORE_ALIAS=pan ./scripts/build.sh
 - 需要在夸克网页版（浏览器中登录后）获取**完整 Cookie**
 - 包含必要的会话参数（如 `__sdid`、`__pugs` 等链路 Cookie）
 - 否则服务端会返回 412 错误
+
+---
+
+## 原生层实现（Java）
+
+### ⬇️ 自研流式下载引擎
+- `MainActivity.DlTask` 自研下载任务表（`ConcurrentHashMap`），支持 **暂停 / 继续 / 重试 / 断点续传**
+- 通过 `HttpURLConnection` 原生 HTTP 请求下载，突破 WebView 限制
+- 下载完成后自动注册到 `MediaStore`（`ContentResolver`），可在系统相册/文件管理器直接打开
+- 任务 ID 区间 `900000000+`，与上传任务区分
+- `DownloadManager` 备选下载通道
+
+### ⬆️ 自研分片上传引擎
+- `UploadManager` 单例管理队列，支持**多个上传任务并发（线程池限 2）**
+- **大文件分片上传**：≥5MB 走 `multipart` 分片（服务端 `SliceSize` 默认 5MB）
+- **失败自动回退**：分片初始化失败时 ≤64MB 的文件自动回退整包直传
+- 支持 `ContentResolver` 读取 `content://` URI（文件选择器选中的只读 URI）
+- 上传任务 ID 区间 `800000000+`，支持取消任务
+
+### 🔌 NativeBridge JS 桥
+- `NativeBridge` 通过 `@JavascriptInterface` 暴露给 WebView，打通 SPA 与原生能力
+- 原生：HttpURLConnection → base64/JSON 回传 → JS 回调
+- 支持 `uploadFileTask` / `uploadFiles` 两种上传桥
+- 预览 URL 代理：`getPreviewUrl` 包装直链，携带认证头 + Range 支持
+- SSO token 自动捕获：`tryCaptureSsoTokenFromMain` 拦截官方登录页回调
+
+### 🧵 并发架构
+- **文件去重线程池**：`FixedThreadPool(12)`，全盘查重时并发请求每个子目录
+- **上传线程池**：`FixedThreadPool(2)`，限制并发防拖死网络
+- **下载任务**：独立线程执行，`streamTaskFiles` / `streamTaskUris` 记录完成路径
+
+### 🔄 跨盘模块（CrossPan）
+- `CrossPan.java` + `crosspan.js` 双端配合，与 123 主流程解耦
+- Cookie 管理：用户粘贴 + 服务端下发的链路 Cookie（`__sdid` / `__pugs`）
+- 夸克/UC CDN 直链下载（独立线程，不占用主链路）
+- 见上文「夸克下载说明」了解更多
+
+### 📁 目录选择器（SAF）
+- 自定义下载目录：通过 `Intent.ACTION_OPEN_DOCUMENT_TREE` 让用户任意选择目录
+- 支持 Download 根、Download 子目录、甚至非 Download 目录（如 Movies/DCIM）
+- 路径解析精确保留用户选择，存储到 `SharedPreferences`
